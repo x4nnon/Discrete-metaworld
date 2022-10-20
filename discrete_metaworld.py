@@ -87,6 +87,7 @@ class discreteMetaWorld:
             np.inf, np.inf, np.inf,
             np.inf, 0., 0., 0.], np.float32))
         self.cont_env = cont_env
+        self.total_time_steps = 0
         self.obs = self.reset()
         self.decisions_list = []
         self.decisions_made = 0
@@ -95,34 +96,57 @@ class discreteMetaWorld:
         self.length_list = []
         self.steps = 0
         self.ep_counter = 0
+        self.ep_trajectory = []
+        self.success_trajectory_list = []
+        self.failure_trajectory_list = []
+        self.success_list = []
+        self.all_trajectory_list = []
+        
     
     def step(self, actions):
+        self.total_time_steps += 1
         cont_actions = self.disc_to_cont(actions)
         self.decisions_made += 1
         self.steps += 1 # for now this is the same as decisions - work needed for options 
         self.obs, self.reward, self.done, self.info = self.cont_env.step(cont_actions)
-        self.rewards += self.reward
+        self.reward += -10 # to encourage faster solutions
+        self.rewards += self.reward 
+                
         
-        if self.steps == 499: # this stops us hitting the maximum steps
+        
+        if bool(self.info['success']):
+            self.done = True
+            self.ep_counter += 1
+            print(self.ep_counter)
+            print(self.rewards)
+            self.success_trajectory_list.append(self.ep_trajectory)
+            print("done before max steps!")
+        
+        elif self.steps == 499: # this stops us hitting the maximum steps
             print(" hit max steps ")
             self.ep_counter += 1
             print(self.ep_counter)
+            print(self.rewards)
             self.done = True
+            self.failure_trajectory_list.append(self.ep_trajectory)
         
-        elif self.done == True:
-            self.ep_counter += 1
-            print(self.ep_counter)
-            print("done before max steps!")
+        # so these are discrete but have the whole info for later analysis.
+        self.ep_trajectory.append([self.obs, actions, self.reward, self.done]) 
         
         if self.done == True:
             self.decisions_list.append(self.decisions_made)
             self.rewards_list.append(self.rewards)
             self.length_list.append(self.steps)
+            self.success_list.append(bool(self.info['success']))
+            self.all_trajectory_list.append(self.ep_trajectory)
             self.reset()
+            
+        
     
         return self.obs, self.reward, self.done, self.info
     
     def reset(self):
+        print("total timesteps are : ", self.total_time_steps)
         self.decisions_made = 0
         self.rewards = 0
         self.steps = 0
@@ -168,7 +192,7 @@ if __name__ == "__main__":
     
     runs = 1
     for run in range(runs):
-        print("starting run ", run)
+        print("starting run ", sys.argv[1]) # sys.argv[1] is because we running on hex temp thing.
         disc_env = discreteMetaWorld(cont_env)
         model = stable_baselines3.PPO('MlpPolicy', disc_env, tensorboard_log=log_dir,
                                       device="cuda")

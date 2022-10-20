@@ -65,7 +65,7 @@ def plot_graphs(folder_dir, runs):
 
             a = np.array(a)
             temp_list = np.mean(a, axis=0)
-            window_size = 40
+            window_size = 3
             temp_series = pd.Series(temp_list)
             windows = temp_series.rolling(window_size)
             moving_averages = windows.mean()
@@ -91,10 +91,15 @@ def plot_graphs(folder_dir, runs):
         plt.ylabel("Average episodic return")
         plt.legend()
         plt.title(drl)
+        print("hello")
         plt.show()
+        print("hello")
+        plt.savefig('./plots/{}.png'.format(drl))
 
 
-
+if __name__ == "__main__":
+    folder_dir = "./test_records"
+    plot_graphs(folder_dir, 1)
 
 
 
